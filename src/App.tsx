@@ -113,6 +113,7 @@ export default function App() {
         - Telefon kontaktowy
         - Adres e-mail
         - Skąd pochodzą opinie (tablica stringów, np. ["Google Maps", "Fixly", "Grupa FB: Budowa Domu"])
+        - trustScore: wskaźnik zaufania, MUSI być w skali od 0 do 100 (np. 95, 82, 45). Nie używaj skali 1-10.
         
         W polu "summary" napisz krótki, charakterny komentarz Ireny (np. "Firma solidna, ale w 2018 mieli mały poślizg z VATem. Można brać.").
       `;
@@ -196,9 +197,18 @@ export default function App() {
     }
   };
 
+  const getNormalizedScore = (score: number) => {
+    // If AI hallucinates a 1-10 scale instead of 0-100, fix it
+    if (score > 0 && score <= 10) {
+      return score * 10;
+    }
+    return score;
+  };
+
   const getScoreColor = (score: number) => {
-    if (score >= 80) return 'text-green-600 bg-green-50 border-green-200';
-    if (score >= 50) return 'text-yellow-600 bg-yellow-50 border-yellow-200';
+    const normalized = getNormalizedScore(score);
+    if (normalized >= 80) return 'text-green-600 bg-green-50 border-green-200';
+    if (normalized >= 50) return 'text-yellow-600 bg-yellow-50 border-yellow-200';
     return 'text-red-600 bg-red-50 border-red-200';
   };
 
@@ -377,7 +387,7 @@ export default function App() {
                     <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-3">
                       <h4 className="text-2xl font-bold text-gray-900">{company.name}</h4>
                       <div className={`px-4 py-1.5 rounded-full text-base font-bold border shrink-0 ${getScoreColor(company.trustScore)}`}>
-                        Trust Score: {company.trustScore}/100
+                        Trust Score: {getNormalizedScore(company.trustScore)}/100
                       </div>
                     </div>
                     <p className="text-gray-700 text-lg mb-5">{company.description}</p>
