@@ -3,8 +3,15 @@ import { GoogleGenAI, Type } from '@google/genai';
 import { Search, ShieldCheck, AlertTriangle, XCircle, CheckCircle2, Building2, MapPin, Phone, Star, FileText, Landmark, Users, Wrench } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 
-// Initialize Gemini API
-const ai = new GoogleGenAI({ apiKey: process.env.GEMINI_API_KEY });
+// Initialize Gemini API lazily to prevent crash on load if key is missing
+let ai: GoogleGenAI | null = null;
+try {
+  if (process.env.GEMINI_API_KEY) {
+    ai = new GoogleGenAI({ apiKey: process.env.GEMINI_API_KEY });
+  }
+} catch (e) {
+  console.error("Failed to initialize Gemini API", e);
+}
 
 interface VerificationCategory {
   status: string;
@@ -81,6 +88,12 @@ export default function App() {
     setLoadingMsgIdx(0);
 
     try {
+      if (!ai) {
+        setError('Irena mówi: "Brak klucza API! Dodaj GEMINI_API_KEY w ustawieniach Vercel i zrób Redeploy."');
+        setIsLoading(false);
+        return;
+      }
+
       const prompt = `
         Jesteś "Ireną z Zarzecza" - bezlitosną, ale sprawiedliwą weryfikatorką fachowców.
         Znajdź 3 realistyczne (lub prawdziwe, jeśli znasz) firmy z branży "${industry}", 
