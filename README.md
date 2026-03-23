@@ -1,31 +1,20 @@
-# Weryfikator Fachowców BY IRENA Z ZARZECZA 🕵️‍♀️🛠️
+<div align="center">
+<img width="1200" height="475" alt="GHBanner" src="https://github.com/user-attachments/assets/0aa67016-6eaf-458a-adb2-6e31a0763ed6" />
+</div>
 
-Inteligentna aplikacja oparta na sztucznej inteligencji, która pomaga skutecznie szukać i weryfikować wykonawców z różnych branż. Koniec z "firmami-krzak" i niesolidnymi fachowcami – wirtualna Irena z Zarzecza prześwietli każdego!
+# Run and deploy your AI Studio app
 
-## 🌟 Główne funkcje
+This contains everything you need to run your app locally.
 
-- **Wyszukiwarka AI:** Znajduje fachowców na podstawie precyzyjnej branży, rodzaju pracy, lokalizacji oraz promienia odległości (np. Kraków + 10 km).
-- **Bezlitosna Weryfikacja (4 filary):**
-  - 🏛️ **Rejestry Państwowe:** Sprawdzanie statusu w CEIDG, KRS, na Białej Liście VAT i w REGON.
-  - 💰 **Finanse i Długi:** Weryfikacja wiarygodności w KRD, BIG i Krajowym Rejestrze Zadłużonych (KRZ).
-  - ⭐ **Social Proof:** Analiza opinii z Google Maps, Oferteo, Fixly i lokalnych grup.
-  - 🔧 **Uprawnienia Branżowe:** Weryfikacja certyfikatów i uprawnień (UDT, GUNB, stowarzyszenia).
-- **Trust Score:** Przejrzysty wskaźnik zaufania (0-100) dla każdej znalezionej firmy.
-- **Werdykt Ireny:** Krótkie, dosadne i szczere podsumowanie wygenerowane przez AI, które mówi wprost, czy warto podjąć współpracę.
-- **Szybki podgląd (Quick Badges):** Błyskawiczna wizualizacja statusów weryfikacji (✅ / ❌) dla łatwiejszego skanowania wyników.
+View your app in AI Studio: https://ai.studio/apps/fb69e711-4ccb-49c9-9edc-5d57a4b825d8
 
-## 💻 Technologie
+## Run Locally
 
-- **Frontend:** React 19 + Vite
-- **Styling:** Tailwind CSS
-- **AI Engine:** Google Gemini API (`@google/genai`)
-- **Animacje:** Motion (Framer Motion)
-- **Ikony:** Lucide React
+**Prerequisites:**  Node.js
 
-## 🚀 Jak uruchomić projekt lokalnie?
 
-1. Sklonuj repozytorium:
-   ```bash
-   git clone https://github.com/TWOJA_NAZWA/weryfikator-fachowcow.git
-
-   Jeśli chcesz, abym coś w nim zmienił lub dodał instrukcje dotyczące wdrożenia (np. na Vercel/Netlify), daj znać!
+1. Install dependencies:
+   `npm install`
+2. Set the `GEMINI_API_KEY` in [.env.local](.env.local) to your Gemini API key
+3. Run the app:
+   `npm run dev`
