@@ -19,20 +19,22 @@ interface VerificationCategory {
 }
 
 interface Company {
-  name: string;
-  description: string;
-  fullAddress: string;
-  phone: string;
-  email: string;
-  reviewSources: string[];
-  verification: {
-    stateRegisters: VerificationCategory;
-    financial: VerificationCategory;
-    socialProof: VerificationCategory;
-    specialized: VerificationCategory;
+  name?: string;
+  description?: string;
+  fullAddress?: string;
+  location?: string;
+  phone?: string;
+  contact?: string;
+  email?: string;
+  reviewSources?: string[];
+  verification?: {
+    stateRegisters?: VerificationCategory;
+    financial?: VerificationCategory;
+    socialProof?: VerificationCategory;
+    specialized?: VerificationCategory;
   };
-  trustScore: number;
-  summary: string;
+  trustScore?: number;
+  summary?: string;
 }
 
 const INDUSTRIES = [
@@ -184,7 +186,7 @@ export default function App() {
       });
 
       const data = JSON.parse(response.text || '{}');
-      if (data.companies && data.companies.length > 0) {
+      if (data && data.companies && Array.isArray(data.companies) && data.companies.length > 0) {
         setResults(data.companies);
       } else {
         setError('Irena nie znalazła nikogo godnego zaufania w tej okolicy.');
@@ -197,7 +199,8 @@ export default function App() {
     }
   };
 
-  const getNormalizedScore = (score: number) => {
+  const getNormalizedScore = (score?: number) => {
+    if (score === undefined || score === null) return 0;
     // If AI hallucinates a 1-10 scale instead of 0-100, fix it
     if (score > 0 && score <= 10) {
       return score * 10;
@@ -205,14 +208,14 @@ export default function App() {
     return score;
   };
 
-  const getScoreColor = (score: number) => {
+  const getScoreColor = (score?: number) => {
     const normalized = getNormalizedScore(score);
     if (normalized >= 80) return 'text-green-600 bg-green-50 border-green-200';
     if (normalized >= 50) return 'text-yellow-600 bg-yellow-50 border-yellow-200';
     return 'text-red-600 bg-red-50 border-red-200';
   };
 
-  const QuickBadge = ({ title, isPositive, icon: Icon }: { title: string, isPositive: boolean, icon: any }) => (
+  const QuickBadge = ({ title, isPositive, icon: Icon }: { title: string, isPositive?: boolean, icon: any }) => (
     <div className={`flex items-center gap-1.5 px-3 py-2 rounded-md text-sm font-bold border ${isPositive ? 'bg-green-50 text-green-700 border-green-200' : 'bg-red-50 text-red-700 border-red-200'}`}>
       <Icon className="w-4 h-4" />
       {title}
@@ -220,20 +223,23 @@ export default function App() {
     </div>
   );
 
-  const VerificationBadge = ({ title, icon: Icon, data }: { title: string, icon: any, data: VerificationCategory }) => (
-    <div className={`flex items-start gap-4 p-5 rounded-xl border ${data.isPositive ? 'bg-green-50/50 border-green-200' : 'bg-red-50/50 border-red-200'}`}>
-      <div className={`mt-0.5 p-2 rounded-full ${data.isPositive ? 'bg-green-100 text-green-600' : 'bg-red-100 text-red-600'}`}>
-        {data.isPositive ? <CheckCircle2 className="w-6 h-6" /> : <XCircle className="w-6 h-6" />}
-      </div>
-      <div>
-        <div className={`flex items-center gap-2 text-sm font-bold uppercase tracking-wider mb-2 ${data.isPositive ? 'text-green-800' : 'text-red-800'}`}>
-          <Icon className="w-4 h-4" />
-          {title}
+  const VerificationBadge = ({ title, icon: Icon, data }: { title: string, icon: any, data?: VerificationCategory }) => {
+    if (!data) return null;
+    return (
+      <div className={`flex items-start gap-4 p-5 rounded-xl border ${data.isPositive ? 'bg-green-50/50 border-green-200' : 'bg-red-50/50 border-red-200'}`}>
+        <div className={`mt-0.5 p-2 rounded-full ${data.isPositive ? 'bg-green-100 text-green-600' : 'bg-red-100 text-red-600'}`}>
+          {data.isPositive ? <CheckCircle2 className="w-6 h-6" /> : <XCircle className="w-6 h-6" />}
         </div>
-        <p className={`text-base leading-relaxed ${data.isPositive ? 'text-green-900' : 'text-red-900'}`}>{data.status}</p>
+        <div>
+          <div className={`flex items-center gap-2 text-sm font-bold uppercase tracking-wider mb-2 ${data.isPositive ? 'text-green-800' : 'text-red-800'}`}>
+            <Icon className="w-4 h-4" />
+            {title}
+          </div>
+          <p className={`text-base leading-relaxed ${data.isPositive ? 'text-green-900' : 'text-red-900'}`}>{data.status || 'Brak danych'}</p>
+        </div>
       </div>
-    </div>
-  );
+    );
+  };
 
   return (
     <div className="min-h-screen bg-[#f5f5f5] text-gray-900 font-sans selection:bg-blue-200">
@@ -385,70 +391,74 @@ export default function App() {
                 <div className="p-6 md:p-8 border-b border-gray-100 flex flex-col md:flex-row md:items-start justify-between gap-6">
                   <div className="w-full">
                     <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-3">
-                      <h4 className="text-2xl font-bold text-gray-900">{company.name}</h4>
+                      <h4 className="text-2xl font-bold text-gray-900">{company.name || 'Nieznana firma'}</h4>
                       <div className={`px-4 py-1.5 rounded-full text-base font-bold border shrink-0 ${getScoreColor(company.trustScore)}`}>
                         Trust Score: {getNormalizedScore(company.trustScore)}/100
                       </div>
                     </div>
-                    <p className="text-gray-700 text-lg mb-5">{company.description}</p>
+                    <p className="text-gray-700 text-lg mb-5">{company.description || 'Brak opisu'}</p>
                     
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-base text-gray-600 mb-6 bg-gray-50 p-4 rounded-xl border border-gray-100">
                       <div className="flex items-start gap-2.5">
                         <MapPin className="w-5 h-5 text-gray-400 shrink-0 mt-0.5" /> 
-                        <span>{company.fullAddress}</span>
+                        <span>{company.fullAddress || company.location || 'Brak adresu'}</span>
                       </div>
                       <div className="flex items-start gap-2.5">
                         <Phone className="w-5 h-5 text-gray-400 shrink-0 mt-0.5" /> 
-                        <span>{company.phone}</span>
+                        <span>{company.phone || company.contact || 'Brak telefonu'}</span>
                       </div>
                       <div className="flex items-start gap-2.5">
                         <Mail className="w-5 h-5 text-gray-400 shrink-0 mt-0.5" /> 
-                        <span>{company.email}</span>
+                        <span>{company.email || 'Brak e-maila'}</span>
                       </div>
                       <div className="flex items-start gap-2.5">
                         <MessageSquare className="w-5 h-5 text-gray-400 shrink-0 mt-0.5" /> 
                         <span>
-                          <strong>Źródła opinii:</strong> {company.reviewSources?.join(', ') || 'Brak danych'}
+                          <strong>Źródła opinii:</strong> {Array.isArray(company.reviewSources) ? company.reviewSources.join(', ') : (company.reviewSources || 'Brak danych')}
                         </span>
                       </div>
                     </div>
                     
                     {/* Quick Summary Badges */}
-                    <div className="flex flex-wrap items-center gap-3">
-                      <QuickBadge title="Rejestry" isPositive={company.verification.stateRegisters.isPositive} icon={Landmark} />
-                      <QuickBadge title="Finanse" isPositive={company.verification.financial.isPositive} icon={FileText} />
-                      <QuickBadge title="Opinie" isPositive={company.verification.socialProof.isPositive} icon={Star} />
-                      <QuickBadge title="Uprawnienia" isPositive={company.verification.specialized.isPositive} icon={Wrench} />
-                    </div>
+                    {company.verification && (
+                      <div className="flex flex-wrap items-center gap-3">
+                        <QuickBadge title="Rejestry" isPositive={company.verification.stateRegisters?.isPositive} icon={Landmark} />
+                        <QuickBadge title="Finanse" isPositive={company.verification.financial?.isPositive} icon={FileText} />
+                        <QuickBadge title="Opinie" isPositive={company.verification.socialProof?.isPositive} icon={Star} />
+                        <QuickBadge title="Uprawnienia" isPositive={company.verification.specialized?.isPositive} icon={Wrench} />
+                      </div>
+                    )}
                   </div>
                 </div>
 
                 {/* Verification Grid */}
-                <div className="p-6 md:p-8 bg-gray-50/50">
-                  <h5 className="text-base font-bold text-gray-900 uppercase tracking-wider mb-5">Szczegóły Weryfikacji</h5>
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
-                    <VerificationBadge 
-                      title="Rejestry Państwowe (CEIDG/KRS/VAT)" 
-                      icon={Landmark} 
-                      data={company.verification.stateRegisters} 
-                    />
-                    <VerificationBadge 
-                      title="Finanse i Długi (KRD/BIG/KRZ)" 
-                      icon={FileText} 
-                      data={company.verification.financial} 
-                    />
-                    <VerificationBadge 
-                      title="Social Proof (Opinie, Google, Fixly)" 
-                      icon={Star} 
-                      data={company.verification.socialProof} 
-                    />
-                    <VerificationBadge 
-                      title="Uprawnienia Branżowe (UDT/GUNB)" 
-                      icon={Wrench} 
-                      data={company.verification.specialized} 
-                    />
+                {company.verification && (
+                  <div className="p-6 md:p-8 bg-gray-50/50">
+                    <h5 className="text-base font-bold text-gray-900 uppercase tracking-wider mb-5">Szczegóły Weryfikacji</h5>
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
+                      <VerificationBadge 
+                        title="Rejestry Państwowe (CEIDG/KRS/VAT)" 
+                        icon={Landmark} 
+                        data={company.verification.stateRegisters} 
+                      />
+                      <VerificationBadge 
+                        title="Finanse i Długi (KRD/BIG/KRZ)" 
+                        icon={FileText} 
+                        data={company.verification.financial} 
+                      />
+                      <VerificationBadge 
+                        title="Social Proof (Opinie, Google, Fixly)" 
+                        icon={Star} 
+                        data={company.verification.socialProof} 
+                      />
+                      <VerificationBadge 
+                        title="Uprawnienia Branżowe (UDT/GUNB)" 
+                        icon={Wrench} 
+                        data={company.verification.specialized} 
+                      />
+                    </div>
                   </div>
-                </div>
+                )}
 
                 {/* Irena's Summary */}
                 <div className="p-6 md:p-8 bg-blue-50 border-t border-blue-100 flex gap-5 items-start">
@@ -457,7 +467,7 @@ export default function App() {
                   </div>
                   <div>
                     <h5 className="text-base font-bold text-blue-900 uppercase tracking-wider mb-2">Werdykt Ireny</h5>
-                    <p className="text-blue-800 italic font-medium text-lg leading-relaxed">"{company.summary}"</p>
+                    <p className="text-blue-800 italic font-medium text-lg leading-relaxed">"{company.summary || 'Brak werdyktu'}"</p>
                   </div>
                 </div>
               </motion.div>
