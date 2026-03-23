@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { GoogleGenAI, Type } from '@google/genai';
-import { Search, ShieldCheck, AlertTriangle, XCircle, CheckCircle2, Building2, MapPin, Phone, Star, FileText, Landmark, Users, Wrench } from 'lucide-react';
+import { Search, ShieldCheck, AlertTriangle, XCircle, CheckCircle2, Building2, MapPin, Phone, Star, FileText, Landmark, Users, Wrench, Mail, MessageSquare } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 
 // Initialize Gemini API lazily to prevent crash on load if key is missing
@@ -21,8 +21,10 @@ interface VerificationCategory {
 interface Company {
   name: string;
   description: string;
-  location: string;
-  contact: string;
+  fullAddress: string;
+  phone: string;
+  email: string;
+  reviewSources: string[];
   verification: {
     stateRegisters: VerificationCategory;
     financial: VerificationCategory;
@@ -102,11 +104,17 @@ export default function App() {
         Dla każdej firmy przeprowadź wirtualną "weryfikację" w 4 kategoriach:
         1. Rejestry Państwowe (CEIDG, KRS, VAT, REGON)
         2. Finanse i Długi (KRD, BIG, KRZ)
-        3. Social Proof (Google Maps, Oferteo, Fixly)
+        3. Social Proof (Google Maps, Oferteo, Fixly, Grupy FB)
         4. Branżowe (Uprawnienia, UDT, GUNB, Certyfikaty)
         
-        Zwróć dane w formacie JSON. Bądź konkretny. W polu "summary" napisz krótki, 
-        charakterny komentarz Ireny (np. "Firma solidna, ale w 2018 mieli mały poślizg z VATem. Można brać.").
+        Zwróć dane w formacie JSON. Bądź konkretny. 
+        Wymagane dane dla każdej firmy:
+        - Pełny adres (ulica, kod pocztowy, miasto)
+        - Telefon kontaktowy
+        - Adres e-mail
+        - Skąd pochodzą opinie (tablica stringów, np. ["Google Maps", "Fixly", "Grupa FB: Budowa Domu"])
+        
+        W polu "summary" napisz krótki, charakterny komentarz Ireny (np. "Firma solidna, ale w 2018 mieli mały poślizg z VATem. Można brać.").
       `;
 
       const response = await ai.models.generateContent({
@@ -124,8 +132,13 @@ export default function App() {
                   properties: {
                     name: { type: Type.STRING },
                     description: { type: Type.STRING },
-                    location: { type: Type.STRING },
-                    contact: { type: Type.STRING },
+                    fullAddress: { type: Type.STRING },
+                    phone: { type: Type.STRING },
+                    email: { type: Type.STRING },
+                    reviewSources: {
+                      type: Type.ARRAY,
+                      items: { type: Type.STRING }
+                    },
                     verification: {
                       type: Type.OBJECT,
                       properties: {
@@ -190,24 +203,24 @@ export default function App() {
   };
 
   const QuickBadge = ({ title, isPositive, icon: Icon }: { title: string, isPositive: boolean, icon: any }) => (
-    <div className={`flex items-center gap-1.5 px-2.5 py-1.5 rounded-md text-xs font-bold border ${isPositive ? 'bg-green-50 text-green-700 border-green-200' : 'bg-red-50 text-red-700 border-red-200'}`}>
-      <Icon className="w-3.5 h-3.5" />
+    <div className={`flex items-center gap-1.5 px-3 py-2 rounded-md text-sm font-bold border ${isPositive ? 'bg-green-50 text-green-700 border-green-200' : 'bg-red-50 text-red-700 border-red-200'}`}>
+      <Icon className="w-4 h-4" />
       {title}
-      {isPositive ? <CheckCircle2 className="w-4 h-4 ml-1" /> : <XCircle className="w-4 h-4 ml-1" />}
+      {isPositive ? <CheckCircle2 className="w-5 h-5 ml-1" /> : <XCircle className="w-5 h-5 ml-1" />}
     </div>
   );
 
   const VerificationBadge = ({ title, icon: Icon, data }: { title: string, icon: any, data: VerificationCategory }) => (
-    <div className={`flex items-start gap-3 p-4 rounded-xl border ${data.isPositive ? 'bg-green-50/50 border-green-200' : 'bg-red-50/50 border-red-200'}`}>
-      <div className={`mt-0.5 p-1.5 rounded-full ${data.isPositive ? 'bg-green-100 text-green-600' : 'bg-red-100 text-red-600'}`}>
-        {data.isPositive ? <CheckCircle2 className="w-5 h-5" /> : <XCircle className="w-5 h-5" />}
+    <div className={`flex items-start gap-4 p-5 rounded-xl border ${data.isPositive ? 'bg-green-50/50 border-green-200' : 'bg-red-50/50 border-red-200'}`}>
+      <div className={`mt-0.5 p-2 rounded-full ${data.isPositive ? 'bg-green-100 text-green-600' : 'bg-red-100 text-red-600'}`}>
+        {data.isPositive ? <CheckCircle2 className="w-6 h-6" /> : <XCircle className="w-6 h-6" />}
       </div>
       <div>
-        <div className={`flex items-center gap-1.5 text-xs font-bold uppercase tracking-wider mb-1 ${data.isPositive ? 'text-green-800' : 'text-red-800'}`}>
-          <Icon className="w-3.5 h-3.5" />
+        <div className={`flex items-center gap-2 text-sm font-bold uppercase tracking-wider mb-2 ${data.isPositive ? 'text-green-800' : 'text-red-800'}`}>
+          <Icon className="w-4 h-4" />
           {title}
         </div>
-        <p className={`text-sm leading-snug ${data.isPositive ? 'text-green-900' : 'text-red-900'}`}>{data.status}</p>
+        <p className={`text-base leading-relaxed ${data.isPositive ? 'text-green-900' : 'text-red-900'}`}>{data.status}</p>
       </div>
     </div>
   );
@@ -217,9 +230,9 @@ export default function App() {
       {/* Header */}
       <header className="bg-white border-b border-gray-200 sticky top-0 z-10">
         <div className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 h-16 flex items-center justify-between">
-          <div className="flex items-center gap-2">
-            <ShieldCheck className="w-8 h-8 text-blue-600" />
-            <h1 className="text-xl font-bold tracking-tight text-gray-900">
+          <div className="flex items-center gap-3">
+            <ShieldCheck className="w-10 h-10 text-blue-600" />
+            <h1 className="text-2xl font-bold tracking-tight text-gray-900">
               Weryfikator Fachowców <span className="text-blue-600">BY IRENA Z ZARZECZA</span>
             </h1>
           </div>
@@ -229,54 +242,54 @@ export default function App() {
       <main className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
         {/* Search Section */}
         <section className="bg-white rounded-2xl shadow-sm border border-gray-200 p-6 md:p-8 mb-8">
-          <div className="mb-6">
-            <h2 className="text-2xl font-semibold mb-2">Znajdź pewnego wykonawcę</h2>
-            <p className="text-gray-500">Irena prześwietli ich w CEIDG, KRS, KRD i sprawdzi opinie, żebyś Ty nie musiał.</p>
+          <div className="mb-8">
+            <h2 className="text-3xl font-semibold mb-3">Znajdź pewnego wykonawcę</h2>
+            <p className="text-lg text-gray-600">Irena prześwietli ich w CEIDG, KRS, KRD i sprawdzi opinie, żebyś Ty nie musiał.</p>
           </div>
 
-          <form onSubmit={handleSearch} className="grid grid-cols-1 md:grid-cols-12 gap-4">
+          <form onSubmit={handleSearch} className="grid grid-cols-1 md:grid-cols-12 gap-5">
             <div className="md:col-span-3">
-              <label className="block text-sm font-medium text-gray-700 mb-1.5">Branża</label>
+              <label className="block text-base font-medium text-gray-700 mb-2">Branża</label>
               <select 
                 value={industry}
                 onChange={(e) => setIndustry(e.target.value)}
-                className="w-full rounded-xl border-gray-300 bg-gray-50 px-4 py-3 text-gray-900 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none transition-all border"
+                className="w-full rounded-xl border-gray-300 bg-gray-50 px-4 py-3.5 text-base text-gray-900 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none transition-all border"
               >
                 {INDUSTRIES.map(ind => <option key={ind} value={ind}>{ind}</option>)}
               </select>
             </div>
             
             <div className="md:col-span-4">
-              <label className="block text-sm font-medium text-gray-700 mb-1.5">Co jest do zrobienia? (Robota)</label>
+              <label className="block text-base font-medium text-gray-700 mb-2">Co jest do zrobienia? (Robota)</label>
               <input 
                 type="text" 
                 placeholder="np. Kładzenie płytek, Montaż pompy..."
                 value={task}
                 onChange={(e) => setTask(e.target.value)}
-                className="w-full rounded-xl border-gray-300 bg-gray-50 px-4 py-3 text-gray-900 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none transition-all border"
+                className="w-full rounded-xl border-gray-300 bg-gray-50 px-4 py-3.5 text-base text-gray-900 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none transition-all border"
               />
             </div>
 
             <div className="md:col-span-3">
-              <label className="block text-sm font-medium text-gray-700 mb-1.5">Lokalizacja</label>
+              <label className="block text-base font-medium text-gray-700 mb-2">Lokalizacja</label>
               <div className="relative">
-                <MapPin className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400" />
+                <MapPin className="absolute left-3.5 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400" />
                 <input 
                   type="text" 
                   placeholder="np. Warszawa, Kraków"
                   value={location}
                   onChange={(e) => setLocation(e.target.value)}
-                  className="w-full rounded-xl border-gray-300 bg-gray-50 pl-10 pr-4 py-3 text-gray-900 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none transition-all border"
+                  className="w-full rounded-xl border-gray-300 bg-gray-50 pl-11 pr-4 py-3.5 text-base text-gray-900 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none transition-all border"
                 />
               </div>
             </div>
 
             <div className="md:col-span-2">
-              <label className="block text-sm font-medium text-gray-700 mb-1.5">Odległość</label>
+              <label className="block text-base font-medium text-gray-700 mb-2">Odległość</label>
               <select 
                 value={radius}
                 onChange={(e) => setRadius(e.target.value)}
-                className="w-full rounded-xl border-gray-300 bg-gray-50 px-4 py-3 text-gray-900 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none transition-all border"
+                className="w-full rounded-xl border-gray-300 bg-gray-50 px-4 py-3.5 text-base text-gray-900 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none transition-all border"
               >
                 <option value="5">+ 5 km</option>
                 <option value="10">+ 10 km</option>
@@ -284,18 +297,18 @@ export default function App() {
               </select>
             </div>
 
-            <div className="md:col-span-12 mt-2">
+            <div className="md:col-span-12 mt-4">
               <button 
                 type="submit"
                 disabled={isLoading}
-                className="w-full md:w-auto px-8 py-3.5 bg-blue-600 hover:bg-blue-700 text-white font-medium rounded-xl shadow-sm transition-colors flex items-center justify-center gap-2 disabled:opacity-70 disabled:cursor-not-allowed"
+                className="w-full md:w-auto px-8 py-4 bg-blue-600 hover:bg-blue-700 text-white text-lg font-medium rounded-xl shadow-sm transition-colors flex items-center justify-center gap-3 disabled:opacity-70 disabled:cursor-not-allowed"
               >
                 {isLoading ? (
                   <motion.div animate={{ rotate: 360 }} transition={{ repeat: Infinity, duration: 1, ease: "linear" }}>
-                    <Search className="w-5 h-5" />
+                    <Search className="w-6 h-6" />
                   </motion.div>
                 ) : (
-                  <Search className="w-5 h-5" />
+                  <Search className="w-6 h-6" />
                 )}
                 {isLoading ? 'Irena weryfikuje...' : 'Szukaj i Weryfikuj'}
               </button>
@@ -359,22 +372,39 @@ export default function App() {
                 className="bg-white rounded-2xl shadow-sm border border-gray-200 overflow-hidden"
               >
                 {/* Card Header */}
-                <div className="p-6 border-b border-gray-100 flex flex-col md:flex-row md:items-start justify-between gap-4">
-                  <div>
-                    <div className="flex items-center gap-3 mb-2">
-                      <h4 className="text-xl font-bold text-gray-900">{company.name}</h4>
-                      <div className={`px-3 py-1 rounded-full text-sm font-bold border ${getScoreColor(company.trustScore)}`}>
+                <div className="p-6 md:p-8 border-b border-gray-100 flex flex-col md:flex-row md:items-start justify-between gap-6">
+                  <div className="w-full">
+                    <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-3">
+                      <h4 className="text-2xl font-bold text-gray-900">{company.name}</h4>
+                      <div className={`px-4 py-1.5 rounded-full text-base font-bold border shrink-0 ${getScoreColor(company.trustScore)}`}>
                         Trust Score: {company.trustScore}/100
                       </div>
                     </div>
-                    <p className="text-gray-600 mb-3">{company.description}</p>
-                    <div className="flex flex-wrap items-center gap-4 text-sm text-gray-500 mb-4">
-                      <span className="flex items-center gap-1.5"><MapPin className="w-4 h-4" /> {company.location}</span>
-                      <span className="flex items-center gap-1.5"><Phone className="w-4 h-4" /> {company.contact}</span>
+                    <p className="text-gray-700 text-lg mb-5">{company.description}</p>
+                    
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-base text-gray-600 mb-6 bg-gray-50 p-4 rounded-xl border border-gray-100">
+                      <div className="flex items-start gap-2.5">
+                        <MapPin className="w-5 h-5 text-gray-400 shrink-0 mt-0.5" /> 
+                        <span>{company.fullAddress}</span>
+                      </div>
+                      <div className="flex items-start gap-2.5">
+                        <Phone className="w-5 h-5 text-gray-400 shrink-0 mt-0.5" /> 
+                        <span>{company.phone}</span>
+                      </div>
+                      <div className="flex items-start gap-2.5">
+                        <Mail className="w-5 h-5 text-gray-400 shrink-0 mt-0.5" /> 
+                        <span>{company.email}</span>
+                      </div>
+                      <div className="flex items-start gap-2.5">
+                        <MessageSquare className="w-5 h-5 text-gray-400 shrink-0 mt-0.5" /> 
+                        <span>
+                          <strong>Źródła opinii:</strong> {company.reviewSources?.join(', ') || 'Brak danych'}
+                        </span>
+                      </div>
                     </div>
                     
                     {/* Quick Summary Badges */}
-                    <div className="flex flex-wrap items-center gap-2">
+                    <div className="flex flex-wrap items-center gap-3">
                       <QuickBadge title="Rejestry" isPositive={company.verification.stateRegisters.isPositive} icon={Landmark} />
                       <QuickBadge title="Finanse" isPositive={company.verification.financial.isPositive} icon={FileText} />
                       <QuickBadge title="Opinie" isPositive={company.verification.socialProof.isPositive} icon={Star} />
@@ -384,9 +414,9 @@ export default function App() {
                 </div>
 
                 {/* Verification Grid */}
-                <div className="p-6 bg-gray-50/50">
-                  <h5 className="text-sm font-bold text-gray-900 uppercase tracking-wider mb-4">Szczegóły Weryfikacji</h5>
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div className="p-6 md:p-8 bg-gray-50/50">
+                  <h5 className="text-base font-bold text-gray-900 uppercase tracking-wider mb-5">Szczegóły Weryfikacji</h5>
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
                     <VerificationBadge 
                       title="Rejestry Państwowe (CEIDG/KRS/VAT)" 
                       icon={Landmark} 
@@ -411,13 +441,13 @@ export default function App() {
                 </div>
 
                 {/* Irena's Summary */}
-                <div className="p-6 bg-blue-50 border-t border-blue-100 flex gap-4 items-start">
-                  <div className="w-12 h-12 rounded-full bg-blue-200 flex items-center justify-center shrink-0 border-2 border-white shadow-sm">
-                    <Users className="w-6 h-6 text-blue-700" />
+                <div className="p-6 md:p-8 bg-blue-50 border-t border-blue-100 flex gap-5 items-start">
+                  <div className="w-14 h-14 rounded-full bg-blue-200 flex items-center justify-center shrink-0 border-4 border-white shadow-sm">
+                    <Users className="w-7 h-7 text-blue-700" />
                   </div>
                   <div>
-                    <h5 className="text-sm font-bold text-blue-900 uppercase tracking-wider mb-1">Werdykt Ireny</h5>
-                    <p className="text-blue-800 italic font-medium">"{company.summary}"</p>
+                    <h5 className="text-base font-bold text-blue-900 uppercase tracking-wider mb-2">Werdykt Ireny</h5>
+                    <p className="text-blue-800 italic font-medium text-lg leading-relaxed">"{company.summary}"</p>
                   </div>
                 </div>
               </motion.div>
