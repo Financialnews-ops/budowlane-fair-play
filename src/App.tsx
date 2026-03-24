@@ -331,29 +331,86 @@ export default function App() {
     return 'text-red-600 bg-red-50 border-red-200';
   };
 
-  const QuickBadge = ({ title, isPositive, icon: Icon }: { title: string, isPositive?: boolean, icon: any }) => (
-    <div className={`flex items-center gap-1.5 px-3 py-2 rounded-md text-sm font-bold border ${isPositive ? 'bg-green-50 text-green-700 border-green-200' : 'bg-red-50 text-red-700 border-red-200'}`}>
-      <Icon className="w-4 h-4" />
-      {title}
-      {isPositive ? <CheckCircle2 className="w-5 h-5 ml-1" /> : <XCircle className="w-5 h-5 ml-1" />}
-    </div>
-  );
-
-  const VerificationBadge = ({ title, icon: Icon, data }: { title: string, icon: any, data?: VerificationCategory }) => {
-    if (!data) return null;
+  const renderCompanyCard = (company: Company, idx: number, prefix: string) => {
+    const score = getNormalizedScore(company.trustScore);
+    const isFailed = score < 50;
     return (
-      <div className={`flex items-start gap-4 p-5 rounded-xl border ${data.isPositive ? 'bg-green-50/50 border-green-200' : 'bg-red-50/50 border-red-200'}`}>
-        <div className={`mt-0.5 p-2 rounded-full ${data.isPositive ? 'bg-green-100 text-green-600' : 'bg-red-100 text-red-600'}`}>
-          {data.isPositive ? <CheckCircle2 className="w-6 h-6" /> : <XCircle className="w-6 h-6" />}
-        </div>
-        <div>
-          <div className={`flex items-center gap-2 text-sm font-bold uppercase tracking-wider mb-2 ${data.isPositive ? 'text-green-800' : 'text-red-800'}`}>
-            <Icon className="w-4 h-4" />
-            {title}
+      <motion.div
+        key={`${prefix}-${idx}`}
+        initial={{ opacity: 0, y: 20 }}
+        animate={isFailed ? {
+          opacity: 1, y: 0,
+          boxShadow: ['0px 0px 0px 0px rgba(239,68,68,0)', '0px 0px 20px 5px rgba(239,68,68,0.4)', '0px 0px 0px 0px rgba(239,68,68,0)'],
+          borderColor: ['#e5e7eb', '#ef4444', '#e5e7eb']
+        } : { opacity: 1, y: 0 }}
+        transition={isFailed ? {
+          opacity: { duration: 0.3 },
+          y: { duration: 0.3 },
+          boxShadow: { repeat: Infinity, duration: 3, ease: "easeInOut" },
+          borderColor: { repeat: Infinity, duration: 3, ease: "easeInOut" }
+        } : { delay: idx * 0.1 }}
+        className={`bg-white rounded-xl shadow-sm border overflow-hidden flex flex-col p-5 ${isFailed ? 'border-red-400 relative z-10' : 'border-gray-200'}`}
+      >
+        <div className="flex justify-between items-start gap-4 mb-2">
+          <h4 className="text-xl font-bold text-gray-900 leading-tight">{company.name || 'Nieznana firma'}</h4>
+          <div className={`px-3 py-1 rounded-full text-sm font-bold border shrink-0 ${getScoreColor(company.trustScore)}`}>
+            {score}/100
           </div>
-          <p className={`text-base leading-relaxed ${data.isPositive ? 'text-green-900' : 'text-red-900'}`}>{data.status || 'Brak danych'}</p>
         </div>
-      </div>
+        <p className="text-gray-700 text-sm mb-4">{company.description || 'Brak opisu'}</p>
+
+        {/* Integrated Verification Details */}
+        {company.verification && (
+          <div className="mb-4 space-y-1.5">
+            <div className="text-xs font-bold text-gray-500 uppercase tracking-wider mb-2">Szczegóły Weryfikacji</div>
+            <div className="grid grid-cols-1 gap-1.5 text-xs">
+              <div className={`flex items-start gap-2 ${company.verification.ceidgKrs?.isPositive ? 'text-green-700' : 'text-red-700'}`}>
+                {company.verification.ceidgKrs?.isPositive ? <CheckCircle2 className="w-4 h-4 shrink-0" /> : <XCircle className="w-4 h-4 shrink-0" />}
+                <span><strong>CEIDG/KRS:</strong> {company.verification.ceidgKrs?.status}</span>
+              </div>
+              <div className={`flex items-start gap-2 ${company.verification.vatWhitelist?.isPositive ? 'text-green-700' : 'text-red-700'}`}>
+                {company.verification.vatWhitelist?.isPositive ? <CheckCircle2 className="w-4 h-4 shrink-0" /> : <XCircle className="w-4 h-4 shrink-0" />}
+                <span><strong>Biała Lista VAT:</strong> {company.verification.vatWhitelist?.status}</span>
+              </div>
+              <div className={`flex items-start gap-2 ${company.verification.debtRegisters?.isPositive ? 'text-green-700' : 'text-red-700'}`}>
+                {company.verification.debtRegisters?.isPositive ? <CheckCircle2 className="w-4 h-4 shrink-0" /> : <XCircle className="w-4 h-4 shrink-0" />}
+                <span><strong>KRD/BIG:</strong> {company.verification.debtRegisters?.status}</span>
+              </div>
+              <div className={`flex items-start gap-2 ${company.verification.industryPortals?.isPositive ? 'text-green-700' : 'text-red-700'}`}>
+                {company.verification.industryPortals?.isPositive ? <CheckCircle2 className="w-4 h-4 shrink-0" /> : <XCircle className="w-4 h-4 shrink-0" />}
+                <span><strong>Fixly/Oferteo:</strong> {company.verification.industryPortals?.status}</span>
+              </div>
+              <div className={`flex items-start gap-2 ${company.verification.licenses?.isPositive ? 'text-green-700' : 'text-red-700'}`}>
+                {company.verification.licenses?.isPositive ? <CheckCircle2 className="w-4 h-4 shrink-0" /> : <XCircle className="w-4 h-4 shrink-0" />}
+                <span><strong>Uprawnienia:</strong> {company.verification.licenses?.status}</span>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* Verdict */}
+        <div className="mb-4 p-3 bg-slate-50 rounded-lg border border-slate-100 flex gap-3 items-start">
+          <div className="w-8 h-8 rounded-full bg-[#021128] flex items-center justify-center shrink-0">
+            <Users className="w-4 h-4 text-slate-200" />
+          </div>
+          <div>
+            <h5 className="text-[10px] font-bold text-[#021128] uppercase tracking-wider mb-1">Werdykt Ireny</h5>
+            <p className="text-xs text-slate-800 italic font-medium">"{company.summary || 'Brak werdyktu'}"</p>
+          </div>
+        </div>
+
+        {/* Contact Info */}
+        <div className="mt-auto pt-3 border-t border-gray-100">
+          <h5 className="text-[10px] font-bold text-gray-500 uppercase tracking-wider mb-1.5">INFORMACJE KONTAKTOWE</h5>
+          <div className="text-xs text-gray-800 flex flex-wrap items-center gap-x-2 gap-y-1 font-medium">
+            <span>{company.fullAddress || company.location || 'Brak adresu'}</span>
+            <span className="text-gray-300">|</span>
+            <span>{company.phone || company.contact || 'Brak telefonu'}</span>
+            <span className="text-gray-300">|</span>
+            <span>{company.email || 'Brak e-maila'}</span>
+          </div>
+        </div>
+      </motion.div>
     );
   };
 
@@ -552,113 +609,28 @@ export default function App() {
               <h3 className="text-xl font-bold text-gray-900">Raport Ireny ({results.length} znalezionych)</h3>
             </div>
 
-            <div className="grid grid-cols-1 xl:grid-cols-2 gap-6">
-              {results.map((company, idx) => (
-                <motion.div 
-                  key={idx}
-                  initial={{ opacity: 0, y: 20 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  transition={{ delay: idx * 0.1 }}
-                  className="bg-white rounded-2xl shadow-sm border border-gray-200 overflow-hidden flex flex-col"
-                >
-                  {/* Card Header */}
-                  <div className="p-6 border-b border-gray-100 flex-grow">
-                    <div className="flex flex-col md:flex-row md:items-start justify-between gap-4 mb-3">
-                      <div>
-                        <div className="flex items-center gap-2 mb-2">
-                          {company.locationType === 'surroundings' ? (
-                            <span className="px-2.5 py-1 bg-blue-50 text-blue-700 text-xs font-bold rounded-md uppercase tracking-wider">Okolica (+50 km)</span>
-                          ) : (
-                            <span className="px-2.5 py-1 bg-slate-100 text-slate-700 text-xs font-bold rounded-md uppercase tracking-wider">W mieście</span>
-                          )}
-                        </div>
-                        <h4 className="text-2xl font-bold text-gray-900">{company.name || 'Nieznana firma'}</h4>
-                      </div>
-                      <div className={`px-4 py-1.5 rounded-full text-base font-bold border shrink-0 ${getScoreColor(company.trustScore)}`}>
-                        Trust Score: {getNormalizedScore(company.trustScore)}/100
-                      </div>
-                    </div>
-                    <p className="text-gray-700 text-base mb-5">{company.description || 'Brak opisu'}</p>
-                    
-                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 text-sm text-gray-600 mb-6 bg-gray-50 p-4 rounded-xl border border-gray-100">
-                      <div className="flex items-start gap-2.5">
-                        <MapPin className="w-4 h-4 text-gray-400 shrink-0 mt-0.5" /> 
-                        <span>{company.fullAddress || company.location || 'Brak adresu'}</span>
-                      </div>
-                      <div className="flex items-start gap-2.5">
-                        <Phone className="w-4 h-4 text-gray-400 shrink-0 mt-0.5" /> 
-                        <span>{company.phone || company.contact || 'Brak telefonu'}</span>
-                      </div>
-                      <div className="flex items-start gap-2.5">
-                        <Mail className="w-4 h-4 text-gray-400 shrink-0 mt-0.5" /> 
-                        <span>{company.email || 'Brak e-maila'}</span>
-                      </div>
-                      <div className="flex items-start gap-2.5">
-                        <MessageSquare className="w-4 h-4 text-gray-400 shrink-0 mt-0.5" /> 
-                        <span>
-                          <strong>Źródła opinii:</strong> {Array.isArray(company.reviewSources) ? company.reviewSources.join(', ') : (company.reviewSources || 'Brak danych')}
-                        </span>
-                      </div>
-                    </div>
-                    
-                    {/* Quick Summary Badges */}
-                    {company.verification && (
-                      <div className="flex flex-wrap items-center gap-2">
-                        <QuickBadge title="CEIDG/KRS" isPositive={company.verification.ceidgKrs?.isPositive} icon={Landmark} />
-                        <QuickBadge title="Biała Lista VAT" isPositive={company.verification.vatWhitelist?.isPositive} icon={ShieldCheck} />
-                        <QuickBadge title="KRD/BIG" isPositive={company.verification.debtRegisters?.isPositive} icon={FileText} />
-                        <QuickBadge title="Fixly/Oferteo" isPositive={company.verification.industryPortals?.isPositive} icon={Star} />
-                        <QuickBadge title="UDT/SEP/PIIB" isPositive={company.verification.licenses?.isPositive} icon={Wrench} />
-                      </div>
-                    )}
-                  </div>
-
-                  {/* Verification Grid */}
-                  {company.verification && (
-                    <div className="p-6 bg-gray-50/50 border-t border-gray-100">
-                      <h5 className="text-sm font-bold text-gray-900 uppercase tracking-wider mb-4">Szczegóły Weryfikacji</h5>
-                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                        <VerificationBadge 
-                          title="CEIDG / KRS" 
-                          icon={Landmark} 
-                          data={company.verification.ceidgKrs} 
-                        />
-                        <VerificationBadge 
-                          title="Biała lista VAT" 
-                          icon={ShieldCheck} 
-                          data={company.verification.vatWhitelist} 
-                        />
-                        <VerificationBadge 
-                          title="Rejestry Dłużników (KRD/BIG)" 
-                          icon={FileText} 
-                          data={company.verification.debtRegisters} 
-                        />
-                        <VerificationBadge 
-                          title="Portale Branżowe (Fixly/Oferteo)" 
-                          icon={Star} 
-                          data={company.verification.industryPortals} 
-                        />
-                        <VerificationBadge 
-                          title="Uprawnienia (UDT/SEP/PIIB)" 
-                          icon={Wrench} 
-                          data={company.verification.licenses} 
-                        />
-                      </div>
-                    </div>
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+              {/* City Column */}
+              <div>
+                <h3 className="text-2xl font-bold text-[#021128] mb-6 border-b-2 border-[#021128] pb-2">Z Miasta</h3>
+                <div className="space-y-6">
+                  {results.filter(r => r.locationType === 'city').map((company, idx) => renderCompanyCard(company, idx, 'city'))}
+                  {results.filter(r => r.locationType === 'city').length === 0 && (
+                    <p className="text-gray-500 italic">Brak wyników w tej kategorii.</p>
                   )}
+                </div>
+              </div>
 
-                  {/* Irena's Summary */}
-                  <div className="p-6 bg-slate-100 border-t border-slate-200 flex gap-4 items-start">
-                    <div className="w-12 h-12 rounded-full bg-[#021128] flex items-center justify-center shrink-0 border-2 border-white shadow-sm">
-                      <Users className="w-6 h-6 text-slate-200" />
-                    </div>
-                    <div>
-                      <h5 className="text-sm font-bold text-[#021128] uppercase tracking-wider mb-1">Werdykt Ireny</h5>
-                      <p className="text-slate-800 italic font-medium text-base leading-relaxed">"{company.summary || 'Brak werdyktu'}"</p>
-                    </div>
-                  </div>
-                </motion.div>
-              ))}
+              {/* Surroundings Column */}
+              <div>
+                <h3 className="text-2xl font-bold text-[#021128] mb-6 border-b-2 border-[#021128] pb-2">Z Okolicy</h3>
+                <div className="space-y-6">
+                  {results.filter(r => r.locationType === 'surroundings').map((company, idx) => renderCompanyCard(company, idx, 'surroundings'))}
+                  {results.filter(r => r.locationType === 'surroundings').length === 0 && (
+                    <p className="text-gray-500 italic">Brak wyników w tej kategorii.</p>
+                  )}
+                </div>
+              </div>
             </div>
           </div>
         )}
