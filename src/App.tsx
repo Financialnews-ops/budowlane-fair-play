@@ -3,15 +3,8 @@ import { GoogleGenAI, Type } from '@google/genai';
 import { Search, ShieldCheck, AlertTriangle, XCircle, CheckCircle2, Building2, MapPin, Phone, Star, FileText, Landmark, Users, Wrench, Mail, MessageSquare } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 
-// Initialize Gemini API lazily to prevent crash on load if key is missing
-let ai: GoogleGenAI | null = null;
-try {
-  if (process.env.GEMINI_API_KEY) {
-    ai = new GoogleGenAI({ apiKey: process.env.GEMINI_API_KEY });
-  }
-} catch (e) {
-  console.error("Failed to initialize Gemini API", e);
-}
+// Initialize Gemini API lazily inside the search handler to ensure it uses the latest key
+
 
 interface VerificationCategory {
   status: string;
@@ -195,20 +188,23 @@ export default function App() {
     setLoadingMsgIdx(0);
 
     try {
-      if (!ai) {
-        setError('Irena mówi: "Brak klucza API! Dodaj GEMINI_API_KEY w ustawieniach Vercel i zrób Redeploy."');
+      const apiKey = process.env.GEMINI_API_KEY;
+      if (!apiKey) {
+        setError('Irena mówi: "Brak klucza API! Dodaj GEMINI_API_KEY w ustawieniach."');
         setIsLoading(false);
         return;
       }
+      const ai = new GoogleGenAI({ apiKey });
 
       const prompt = `
         Jesteś "Ireną z Zarzecza" - bezlitosną, ale sprawiedliwą weryfikatorką fachowców.
-        Znajdź dokładnie 10 realistycznych (lub prawdziwych, jeśli znasz) firm z branży "${industry}", 
-        które wykonują usługę "${task}".
+        Wygeneruj dokładnie 20 FIKCYJNYCH, zmyślonych firm (mock data) z branży "${industry}", 
+        które wykonują usługę "${task}". 
+        Użyj całkowicie zmyślonych danych kontaktowych (np. losowe numery telefonów, wymyślone adresy e-mail).
         
         Podział lokalizacyjny:
-        - 5 firm musi znajdować się dokładnie w mieście: ${location}.
-        - 5 firm musi znajdować się w okolicach miasta ${location} (w promieniu do 50 km, w różnych kierunkach, poza samym miastem).
+        - 10 firm musi znajdować się dokładnie w mieście: ${location}. (ustaw locationType na "city")
+        - 10 firm musi znajdować się w okolicach miasta ${location} (w promieniu do 50 km, w różnych kierunkach, poza samym miastem). (ustaw locationType na "surroundings")
         
         Dla każdej firmy przeprowadź wirtualną "weryfikację" w 5 szczegółowych kategoriach:
         1. CEIDG / KRS (Aktywny status, data założenia, historia zawieszeń)
@@ -245,6 +241,7 @@ export default function App() {
                     name: { type: Type.STRING },
                     description: { type: Type.STRING },
                     fullAddress: { type: Type.STRING },
+                    locationType: { type: Type.STRING },
                     phone: { type: Type.STRING },
                     email: { type: Type.STRING },
                     reviewSources: {
@@ -614,8 +611,8 @@ export default function App() {
               <div>
                 <h3 className="text-2xl font-bold text-[#021128] mb-6 border-b-2 border-[#021128] pb-2">Z Miasta</h3>
                 <div className="space-y-6">
-                  {results.filter(r => r.locationType === 'city').map((company, idx) => renderCompanyCard(company, idx, 'city'))}
-                  {results.filter(r => r.locationType === 'city').length === 0 && (
+                  {results.filter(r => r.locationType?.toLowerCase() === 'city' || r.locationType?.toLowerCase() === 'miasto').map((company, idx) => renderCompanyCard(company, idx, 'city'))}
+                  {results.filter(r => r.locationType?.toLowerCase() === 'city' || r.locationType?.toLowerCase() === 'miasto').length === 0 && (
                     <p className="text-gray-500 italic">Brak wyników w tej kategorii.</p>
                   )}
                 </div>
@@ -625,8 +622,8 @@ export default function App() {
               <div>
                 <h3 className="text-2xl font-bold text-[#021128] mb-6 border-b-2 border-[#021128] pb-2">Z Okolicy</h3>
                 <div className="space-y-6">
-                  {results.filter(r => r.locationType === 'surroundings').map((company, idx) => renderCompanyCard(company, idx, 'surroundings'))}
-                  {results.filter(r => r.locationType === 'surroundings').length === 0 && (
+                  {results.filter(r => r.locationType?.toLowerCase() === 'surroundings' || r.locationType?.toLowerCase() === 'okolica' || r.locationType?.toLowerCase() === 'okolice').map((company, idx) => renderCompanyCard(company, idx, 'surroundings'))}
+                  {results.filter(r => r.locationType?.toLowerCase() === 'surroundings' || r.locationType?.toLowerCase() === 'okolica' || r.locationType?.toLowerCase() === 'okolice').length === 0 && (
                     <p className="text-gray-500 italic">Brak wyników w tej kategorii.</p>
                   )}
                 </div>
