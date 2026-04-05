@@ -14,7 +14,7 @@ Aplikacja oparta na sztucznej inteligencji (Google Gemini) do wyszukiwania i "we
   3. Rejestry Dłużników (KRD, BIG InfoMonitor)
   4. Portale Branżowe (Fixly, Oferteo itp.)
   5. Rejestry Uprawnień (UDT, SEP, PIIB)
-* **Trust Score (Wskaźnik Zaufania):** Procentowy wskaźnik wiarygodności firmy. Firmy z wynikiem poniżej 50% są wyraźnie oznaczane (czerwone, pulsujące obramowanie).
+* **Trust Score (Wskaźnik Zaufania):** Procentowy wskaźnik wiarygodności firmy. Najlepsze firmy z wynikiem od 80% wzwyż są wyróżniane (szybciej pulsujące, zielone obramowanie).
 * **Werdykt Ireny:** Krótkie, dosadne podsumowanie każdej firmy napisane w charakterystycznym stylu "Ireny".
 
 > **Uwaga:** Ze względu na ograniczenia modeli AI dotyczące danych osobowych (PII), aplikacja obecnie generuje **fikcyjne, wysoce realistyczne dane (mock data)** w celu zaprezentowania mechanizmu działania i interfejsu.

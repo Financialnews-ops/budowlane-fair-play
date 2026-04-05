@@ -160,6 +160,9 @@ export default function App() {
   const [industry, setIndustry] = useState(INDUSTRIES[0]);
   const [task, setTask] = useState(TASKS_BY_INDUSTRY[INDUSTRIES[0]][0]);
   const [location, setLocation] = useState(CITIES[0]);
+  const [userType, setUserType] = useState('Inwestor Indywidualny');
+  const [resultCount, setResultCount] = useState<number>(3);
+  const [schedule, setSchedule] = useState('Rozpoczęcie Remontu');
   const [isLoading, setIsLoading] = useState(false);
   const [loadingMsgIdx, setLoadingMsgIdx] = useState(0);
   const [results, setResults] = useState<Company[] | null>(null);
@@ -198,13 +201,13 @@ export default function App() {
 
       const prompt = `
         Jesteś "Ireną z Zarzecza" - bezlitosną, ale sprawiedliwą weryfikatorką fachowców.
-        Wygeneruj dokładnie 20 FIKCYJNYCH, zmyślonych firm (mock data) z branży "${industry}", 
+        Wygeneruj dokładnie ${resultCount * 2} FIKCYJNYCH, zmyślonych firm (mock data) z branży "${industry}", 
         które wykonują usługę "${task}". 
         Użyj całkowicie zmyślonych danych kontaktowych (np. losowe numery telefonów, wymyślone adresy e-mail).
         
         Podział lokalizacyjny:
-        - 10 firm musi znajdować się dokładnie w mieście: ${location}. (ustaw locationType na "city")
-        - 10 firm musi znajdować się w okolicach miasta ${location} (w promieniu do 50 km, w różnych kierunkach, poza samym miastem). (ustaw locationType na "surroundings")
+        - ${resultCount} firm musi znajdować się dokładnie w mieście: ${location}. (ustaw locationType na "city")
+        - ${resultCount} firm musi znajdować się w okolicach miasta ${location} (w promieniu do 50 km, w różnych kierunkach, poza samym miastem). (ustaw locationType na "surroundings")
         
         Dla każdej firmy przeprowadź wirtualną "weryfikację" w 5 szczegółowych kategoriach:
         1. CEIDG / KRS (Aktywny status, data założenia, historia zawieszeń)
@@ -330,23 +333,23 @@ export default function App() {
 
   const renderCompanyCard = (company: Company, idx: number, prefix: string) => {
     const score = getNormalizedScore(company.trustScore);
-    const isFailed = score < 50;
+    const isTop = score >= 80;
     return (
       <motion.div
         key={`${prefix}-${idx}`}
         initial={{ opacity: 0, y: 20 }}
-        animate={isFailed ? {
+        animate={isTop ? {
           opacity: 1, y: 0,
-          boxShadow: ['0px 0px 0px 0px rgba(239,68,68,0)', '0px 0px 20px 5px rgba(239,68,68,0.4)', '0px 0px 0px 0px rgba(239,68,68,0)'],
-          borderColor: ['#e5e7eb', '#ef4444', '#e5e7eb']
+          boxShadow: ['0px 0px 0px 0px rgba(16,185,129,0)', '0px 0px 15px 4px rgba(16,185,129,0.5)', '0px 0px 0px 0px rgba(16,185,129,0)'],
+          borderColor: ['#e5e7eb', '#10b981', '#e5e7eb']
         } : { opacity: 1, y: 0 }}
-        transition={isFailed ? {
+        transition={isTop ? {
           opacity: { duration: 0.3 },
           y: { duration: 0.3 },
-          boxShadow: { repeat: Infinity, duration: 3, ease: "easeInOut" },
-          borderColor: { repeat: Infinity, duration: 3, ease: "easeInOut" }
+          boxShadow: { repeat: Infinity, duration: 1.5, ease: "easeInOut" },
+          borderColor: { repeat: Infinity, duration: 1.5, ease: "easeInOut" }
         } : { delay: idx * 0.1 }}
-        className={`bg-white rounded-xl shadow-sm border overflow-hidden flex flex-col p-5 ${isFailed ? 'border-red-400 relative z-10' : 'border-gray-200'}`}
+        className={`bg-white rounded-xl shadow-sm border overflow-hidden flex flex-col p-5 ${isTop ? 'border-emerald-400 relative z-10' : 'border-gray-200'}`}
       >
         <div className="flex justify-between items-start gap-4 mb-2">
           <h4 className="text-xl font-bold text-gray-900 leading-tight">{company.name || 'Nieznana firma'}</h4>
@@ -399,12 +402,23 @@ export default function App() {
         {/* Contact Info */}
         <div className="mt-auto pt-3 border-t border-gray-100">
           <h5 className="text-[10px] font-bold text-gray-500 uppercase tracking-wider mb-1.5">INFORMACJE KONTAKTOWE</h5>
-          <div className="text-xs text-gray-800 flex flex-wrap items-center gap-x-2 gap-y-1 font-medium">
+          <div className="text-xs text-gray-800 flex flex-wrap items-center gap-x-2 gap-y-1 font-medium mb-3">
             <span>{company.fullAddress || company.location || 'Brak adresu'}</span>
             <span className="text-gray-300">|</span>
             <span>{company.phone || company.contact || 'Brak telefonu'}</span>
             <span className="text-gray-300">|</span>
             <span>{company.email || 'Brak e-maila'}</span>
+          </div>
+          <div className="rounded-lg overflow-hidden border border-gray-200 h-32 w-full">
+            <iframe
+              width="100%"
+              height="100%"
+              style={{ border: 0 }}
+              loading="lazy"
+              allowFullScreen
+              referrerPolicy="no-referrer-when-downgrade"
+              src={`https://maps.google.com/maps?q=${encodeURIComponent(company.fullAddress || company.location || '')}&t=&z=13&ie=UTF8&iwloc=&output=embed`}
+            ></iframe>
           </div>
         </div>
       </motion.div>
@@ -412,37 +426,28 @@ export default function App() {
   };
 
   return (
-    <div className="min-h-screen bg-[#f5f5f5] text-gray-900 font-sans selection:bg-blue-200">
-      {/* Header - Navy & Silver Theme */}
-      <header className="bg-[#021128] border-b border-slate-800 sticky top-0 z-10 overflow-hidden relative shadow-xl">
-        {/* Silver highlight effect in background mimicking the uploaded logo */}
-        <div className="absolute inset-0 flex justify-center pointer-events-none">
-          <div className="w-64 h-full bg-gradient-to-r from-transparent via-white/20 to-transparent blur-2xl"></div>
-          <div className="absolute inset-0 bg-[radial-gradient(circle_at_center,rgba(255,255,255,0.1)_0%,transparent_50%)]"></div>
-        </div>
-        
-        <div className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 py-8 relative z-10 flex flex-col items-center justify-center text-center">
-          <img 
-            src="/logo.png" 
-            alt="Budowlane SC PL" 
-            className="h-24 md:h-32 lg:h-40 object-contain drop-shadow-2xl mb-6"
-            onError={(e) => {
-              (e.target as HTMLImageElement).style.display = 'none';
-            }}
-          />
-          <h1 className="text-4xl md:text-6xl font-extrabold tracking-tight text-transparent bg-clip-text bg-gradient-to-b from-white via-slate-200 to-slate-400 drop-shadow-[0_2px_2px_rgba(0,0,0,0.8)] mb-2 uppercase" style={{ textShadow: '0px 4px 10px rgba(0,0,0,0.5)' }}>
-            BUDOWLANE FAIR-PLAY
-          </h1>
-          <h2 className="text-3xl md:text-4xl font-bold text-transparent bg-clip-text bg-gradient-to-b from-white to-slate-300 tracking-wide mb-3 drop-shadow-md">
-            by IRENA
-          </h2>
-          <p className="text-sm md:text-base text-slate-300 tracking-[0.2em] uppercase font-semibold drop-shadow-sm">
-            powered by HTNY STUDIOS
-          </p>
-        </div>
-      </header>
+    <div className="min-h-screen bg-[#f5f5f5] text-gray-900 font-sans selection:bg-blue-200 flex flex-col">
+      {/* Header Section */}
+      <div
+        className="w-full h-64 relative flex flex-col items-center justify-center"
+        style={{ background: 'linear-gradient(135deg, #010a18 0%, #021128 35%, #0d2d6b 65%, #021a3d 85%, #010e20 100%)' }}
+      >
+        {/* Subtle radial glow in center */}
+        <div className="absolute inset-0 pointer-events-none" style={{ background: 'radial-gradient(ellipse at 50% 60%, rgba(30,80,180,0.25) 0%, transparent 70%)' }} />
 
-      <main className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 py-8 relative">
+        {/* Center Logo */}
+        <div className="metallic-frame w-28 h-28 flex flex-col items-center justify-center p-2 text-center relative z-10">
+          <span className="text-outline text-3xl font-black leading-none">FAIR</span>
+          <span className="text-outline text-3xl font-black leading-none">PLAY</span>
+        </div>
+
+        {/* Silver subtitle */}
+        <p className="mt-3 text-sm font-semibold tracking-widest relative z-10" style={{ color: '#C8C8C8', textShadow: '0 1px 4px rgba(0,0,0,0.6), 0 0 12px rgba(192,192,192,0.2)' }}>
+          By Irena z Zarzecza
+        </p>
+      </div>
+
+      <main className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 pb-8 relative -mt-16 z-20 flex-1 w-full">
         
         {/* Large Loading Overlay */}
         <AnimatePresence>
@@ -505,48 +510,91 @@ export default function App() {
             <p className="text-lg text-gray-600">Irena prześwietli ich w CEIDG, KRS, KRD i sprawdzi opinie, żebyś Ty nie musiał.</p>
           </div>
 
-          <form onSubmit={handleSearch} className="grid grid-cols-1 md:grid-cols-12 gap-5">
-            <div className="md:col-span-3">
-              <label className="block text-base font-medium text-gray-700 mb-2">Branża</label>
-              <select 
-                value={industry}
-                onChange={(e) => {
-                  const newIndustry = e.target.value;
-                  setIndustry(newIndustry);
-                  setTask(TASKS_BY_INDUSTRY[newIndustry][0]);
-                }}
-                className="w-full rounded-xl border-gray-300 bg-gray-50 px-4 py-3.5 text-base text-gray-900 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none transition-all border"
-              >
-                {INDUSTRIES.map(ind => <option key={ind} value={ind}>{ind}</option>)}
-              </select>
-            </div>
-            
-            <div className="md:col-span-4">
-              <label className="block text-base font-medium text-gray-700 mb-2">Co jest do zrobienia? (Robota)</label>
-              <select 
-                value={task}
-                onChange={(e) => setTask(e.target.value)}
-                className="w-full rounded-xl border-gray-300 bg-gray-50 px-4 py-3.5 text-base text-gray-900 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none transition-all border"
-              >
-                {TASKS_BY_INDUSTRY[industry].map(t => <option key={t} value={t}>{t}</option>)}
-              </select>
+          <form onSubmit={handleSearch} className="space-y-5">
+            <div className="grid grid-cols-1 md:grid-cols-12 gap-5">
+              <div className="md:col-span-3">
+                <label className="block text-base font-medium text-gray-700 mb-2">Branża</label>
+                <select 
+                  value={industry}
+                  onChange={(e) => {
+                    const newIndustry = e.target.value;
+                    setIndustry(newIndustry);
+                    setTask(TASKS_BY_INDUSTRY[newIndustry][0]);
+                  }}
+                  className="w-full rounded-xl border-gray-300 bg-gray-50 px-4 py-3.5 text-base text-gray-900 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none transition-all border"
+                >
+                  {INDUSTRIES.map(ind => <option key={ind} value={ind}>{ind}</option>)}
+                </select>
+              </div>
+              
+              <div className="md:col-span-4">
+                <label className="block text-base font-medium text-gray-700 mb-2">Co jest do zrobienia? (Robota)</label>
+                <select 
+                  value={task}
+                  onChange={(e) => setTask(e.target.value)}
+                  className="w-full rounded-xl border-gray-300 bg-gray-50 px-4 py-3.5 text-base text-gray-900 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none transition-all border"
+                >
+                  {TASKS_BY_INDUSTRY[industry].map(t => <option key={t} value={t}>{t}</option>)}
+                </select>
+              </div>
+
+              <div className="md:col-span-5">
+                <label className="block text-base font-medium text-gray-700 mb-2">Lokalizacja</label>
+                <div className="relative">
+                  <MapPin className="absolute left-3.5 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400" />
+                  <select 
+                    value={location}
+                    onChange={(e) => setLocation(e.target.value)}
+                    className="w-full rounded-xl border-gray-300 bg-gray-50 pl-11 pr-4 py-3.5 text-base text-gray-900 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none transition-all border appearance-none"
+                  >
+                    {CITIES.map(city => <option key={city} value={city}>{city} (+50 km)</option>)}
+                  </select>
+                </div>
+              </div>
             </div>
 
-            <div className="md:col-span-5">
-              <label className="block text-base font-medium text-gray-700 mb-2">Lokalizacja</label>
-              <div className="relative">
-                <MapPin className="absolute left-3.5 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400" />
+            <div className="grid grid-cols-1 md:grid-cols-12 gap-5">
+              <div className="md:col-span-3">
+                <label className="block text-base font-medium text-gray-700 mb-2">Kim jesteś</label>
                 <select 
-                  value={location}
-                  onChange={(e) => setLocation(e.target.value)}
-                  className="w-full rounded-xl border-gray-300 bg-gray-50 pl-11 pr-4 py-3.5 text-base text-gray-900 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none transition-all border appearance-none"
+                  value={userType}
+                  onChange={(e) => setUserType(e.target.value)}
+                  className="w-full rounded-xl border-gray-300 bg-gray-50 px-4 py-3.5 text-base text-gray-900 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none transition-all border"
                 >
-                  {CITIES.map(city => <option key={city} value={city}>{city} (+50 km)</option>)}
+                  <option value="Inwestor Indywidualny">Inwestor Indywidualny</option>
+                  <option value="Deweloper">Deweloper</option>
+                  <option value="Inny Wykonawca">Inny Wykonawca</option>
+                </select>
+              </div>
+              
+              <div className="md:col-span-4">
+                <label className="block text-base font-medium text-gray-700 mb-2">Ilość wyników</label>
+                <select 
+                  value={resultCount}
+                  onChange={(e) => setResultCount(Number(e.target.value))}
+                  className="w-full rounded-xl border-gray-300 bg-gray-50 px-4 py-3.5 text-base text-gray-900 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none transition-all border"
+                >
+                  <option value={1}>1</option>
+                  <option value={3}>3</option>
+                  <option value={5}>5</option>
+                </select>
+              </div>
+
+              <div className="md:col-span-5">
+                <label className="block text-base font-medium text-gray-700 mb-2">Harmonogramowanie</label>
+                <select 
+                  value={schedule}
+                  onChange={(e) => setSchedule(e.target.value)}
+                  className="w-full rounded-xl border-gray-300 bg-gray-50 px-4 py-3.5 text-base text-gray-900 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none transition-all border"
+                >
+                  <option value="Rozpoczęcie Remontu">Rozpoczęcie Remontu</option>
+                  <option value="Przestój i Nerwówka">Przestój i Nerwówka</option>
+                  <option value="Wykończenia i Poprawki">Wykończenia i Poprawki</option>
                 </select>
               </div>
             </div>
 
-            <div className="md:col-span-12 mt-4">
+            <div className="mt-4">
               <button 
                 type="submit"
                 disabled={isLoading}
@@ -632,6 +680,24 @@ export default function App() {
           </div>
         )}
       </main>
+
+      {/* Footer */}
+      <footer
+        className="w-full mt-auto border-t border-slate-700"
+        style={{ background: 'linear-gradient(135deg, #010a18 0%, #021128 50%, #010e20 100%)' }}
+      >
+        <div className="max-w-5xl mx-auto px-4 py-6 flex flex-col sm:flex-row items-center justify-center gap-4">
+          <button className="metallic-button w-full sm:flex-1 sm:max-w-xs py-3 px-4 rounded-sm text-sm font-bold text-gray-800 hover:brightness-110 transition-all text-center">
+            Znajdź swojego fachowca
+          </button>
+          <button className="metallic-button w-full sm:flex-1 sm:max-w-xs py-3 px-4 rounded-sm text-sm font-bold text-gray-800 hover:brightness-110 transition-all text-center">
+            Wspierane przez AI
+          </button>
+          <button className="metallic-button w-full sm:flex-1 sm:max-w-xs py-3 px-4 rounded-sm text-sm font-bold text-gray-800 hover:brightness-110 transition-all text-center">
+            Remontuj bez stresu
+          </button>
+        </div>
+      </footer>
     </div>
   );
 }
